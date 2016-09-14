@@ -27,8 +27,8 @@ public class DumpHelper {
 
     public static void dumpRelations(List<Relation> relations){
         System.out.println("----------------------");
-        System.out.format("%30s %30s %30s %30s %5s %5s\n",
-                "Compartment", "Object", "Player", "Role", "Lvl", "Seq");
+        System.out.format("%30s %12s %12s %30s %30s %30s %5s %5s\n",
+                "Compartment", "BoundTime", "UnBoundTime", "Object", "Player", "Role", "Lvl", "Seq");
 
         relations.forEach(System.out::println);
 
@@ -57,6 +57,19 @@ public class DumpHelper {
         System.out.format("%10s %10s %20s\n", "Method", "InvokingObj", "Callable");
         hashCallables.forEach((k, v) -> {
             System.out.format("%10d %10d %20s\n", k, v.invokingObject.hashCode(), v.method);
+        });
+    }
+
+    public static void displayTransactionCallables(){
+        Registry reg = Registry.getRegistry();
+        HashMap<Integer, HashMap<Integer, CallableMethod>> hash = reg.getHashTransCallables();
+
+        hash.forEach((k, v) -> {
+            System.out.println(k);
+
+            v.forEach((kk, vv) -> {
+                System.out.println("  " + kk + " : " + vv);
+            });
         });
     }
 }

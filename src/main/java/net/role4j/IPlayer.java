@@ -23,6 +23,10 @@ public interface IPlayer {
         return _reg.bindCore(this, klass, args);
     }
 
+    default <T extends IRole> IRole bind(ICompartment compartment, Class<T> clazz, Object... args) throws Throwable{
+        return _reg.bindCore(compartment, this, clazz, args);
+    }
+
     default <T> void unbind(Class<T> klazz) throws Throwable{
 //        _reg.unbind(this, klazz);
         _reg.unbind(this, true, klazz);

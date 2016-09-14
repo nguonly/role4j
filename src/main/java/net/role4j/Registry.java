@@ -13,14 +13,25 @@ import net.bytebuddy.implementation.InvocationHandlerAdapter;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import java.lang.reflect.Method;
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+
+import java.util.AbstractMap.SimpleEntry;
 
 /**
  * Created by nguonly on 4/24/16.
  */
 public class Registry {
     public HashMap<Integer, HashMap<Integer, CallableMethod>> hashCallables = new HashMap<>(); //Proxy Object + HashMap<Method.hashCode, CallabeMethod>
+
+    /**
+     * Integer, HashMap(Integer, HashMap(Integer, CallableMethod))
+     * 1st Integer: compartmentId + ":" + transId + ":" + coreId
+     * 2rd Integer: Method hashCode
+     */
+    private HashMap<Integer, HashMap<Integer, CallableMethod>> hashTransCallables = new HashMap<>();
 
     private ArrayDeque<ProxyRole> proxyRoles = new ArrayDeque<>();
 
@@ -32,11 +43,26 @@ public class Registry {
 
     public HashMap<Integer, CallableMethod> coreCallable = new HashMap<>();
 
+    /**
+     * Transaction list
+     * Long is thread id
+     * SimpleEntry is the key value of TransactionId and Entering Timestamp
+     */
+    private static HashMap<Long, SimpleEntry<Integer, LocalDateTime>> m_transactions = new HashMap<>();
+
+    //Synchronized variable
+    private static final ReentrantLock m_lock = new ReentrantLock();
+
     private static Registry registry;
 
     public synchronized static Registry getRegistry() {
-        if (registry == null) {
-            registry = new Registry();
+        m_lock.lock();
+        try {
+            if (registry == null) {
+                registry = new Registry();
+            }
+        }finally {
+            m_lock.unlock();
         }
         return registry;
     }
@@ -49,11 +75,66 @@ public class Registry {
         this.relations = relations;
     }
 
-    public <T extends IRole> IRole bindCore(IPlayer object, Object role) throws Throwable {
+    public HashMap<Integer, HashMap<Integer, CallableMethod>> getHashTransCallables(){
+        return hashTransCallables;
+    }
+
+//    public <T extends IRole> IRole bindCore(IPlayer object, Object role) throws Throwable {
+//        ICompartment compartment = getActiveCompartment();
+//        if (compartment == null) throw new RuntimeException("No compartment was found");
+//
+//        Class<T> roleType = (Class<T>) role.getClass();
+//
+//        IPlayer core = (IPlayer) object.getClass().getField("_real").get(object);
+//
+//        Object realComparment = compartment.getClass().getField("_real").get(compartment);
+//
+//        //Check if this is the first binding and then binding the core method
+//        Optional<Relation> optCoreRelation = relations.stream()
+//                .filter(p -> p.proxyCompartment.equals(compartment) && p.proxyRole.equals(object) && p.level == 0 && p.sequence == 0)
+//                .findFirst();
+//        if (!optCoreRelation.isPresent()) {
+//            //first binding. 1) register callable for core and 2) register core as proxy role
+//            bindCoreToCore(compartment, realComparment, core, object);
+//        }
+//
+//        T proxyRole = proxyRole(compartment, core, object, role, roleType);
+//
+//        Relation forLvlSeq = LookupTableService.getLevelAndSequence(compartment, object);
+//
+//        Relation r = new Relation();
+//        r.proxyCompartment = compartment;
+//        r.compartment = realComparment;
+//        r.compartmentType = realComparment.getClass();
+//        r.proxyObject = object;
+//        r.object = core;
+//        r.objectType = core.getClass();
+//        r.proxyPlayer = object;
+//        r.player = core; //previously work
+//        r.playerType = ReflectionHelper.getAllSuperClassesAndInterfaces(core.getClass()); //no need to get proxy class
+//        r.role = role;
+//        r.proxyRole = proxyRole;
+//        r.roleType = roleType;
+//        r.level = forLvlSeq.level;
+//        r.sequence = forLvlSeq.sequence;
+//
+//        relations.add(r);
+//
+//        reRegisterCallable(compartment, object);
+//
+//        return proxyRole;
+//    }
+
+    public <T extends IRole> IRole bindCore(IPlayer object, Class<T> roleType, Object... args) throws Throwable {
+//        T role = ReflectionHelper.newInstance(roleType, args);
         ICompartment compartment = getActiveCompartment();
         if (compartment == null) throw new RuntimeException("No compartment was found");
 
-        Class<T> roleType = (Class<T>) role.getClass();
+        return bindCore(compartment, object, roleType, args);
+    }
+
+    public <T extends IRole> IRole bindCore(ICompartment compartment, IPlayer object, Class<T> roleType, Object... args) throws Throwable{
+        T role = ReflectionHelper.newInstance(roleType, args);
 
         IPlayer core = (IPlayer) object.getClass().getField("_real").get(object);
 
@@ -88,16 +169,14 @@ public class Registry {
         r.level = forLvlSeq.level;
         r.sequence = forLvlSeq.sequence;
 
+        r.boundTime = LocalDateTime.now();
+
         relations.add(r);
 
+        //Create invoke dynamic for method callable
         reRegisterCallable(compartment, object);
 
         return proxyRole;
-    }
-
-    public <T extends IRole> IRole bindCore(IPlayer object, Class<T> roleType, Object... args) throws Throwable {
-        T role = ReflectionHelper.newInstance(roleType, args);
-        return bindCore(object, role);
     }
 
     private void bindCoreToCore(Object compartment, Object realCompartment, Object core, Object proxyCore) {
@@ -134,6 +213,10 @@ public class Registry {
         ICompartment compartment = getActiveCompartment();
         if (compartment == null) throw new RuntimeException("No compartment was found");
 
+        return bindRole(compartment, pxRoleAsPlayer, roleType, args);
+    }
+
+    public <T extends IRole> IRole bindRole(ICompartment compartment, IPlayer pxRoleAsPlayer, Class<T> roleType, Object... args) throws Throwable{
         T role = ReflectionHelper.newInstance(roleType, args);
 
         //find core object
@@ -168,6 +251,8 @@ public class Registry {
         r.level = forLvlSeq.level;
         r.sequence = forLvlSeq.sequence;
 
+        r.boundTime = LocalDateTime.now();
+
         relations.add(r);
 
         reRegisterCallable(compartment, proxyCore);
@@ -184,11 +269,31 @@ public class Registry {
             CallableMethod cm = coreCallable.get(m.hashCode());
             return cm.callable.invoke(cm.invokingObject, args);
         } else { //invoke from the playing relation
-            m = compartment.hashCode() + core.hashCode() + getMethodForKey(method);
-            int hashCode = (compartment.hashCode() + ":" + core.hashCode()).hashCode();
-            HashMap<Integer, CallableMethod> hash = hashCallables.get(hashCode);
-            CallableMethod cm = hash.get(m.hashCode());
-            return cm.callable.invoke(cm.invokingObject, args);
+            //check if there is transaction, then method lookup will use from hashTransCallables
+            long threadId = Thread.currentThread().getId();
+            SimpleEntry<Integer, LocalDateTime> transValue = m_transactions.get(threadId);
+            if(transValue != null) {
+                int transId = transValue.getKey();
+
+                int hashCode = (compartment.hashCode() + ":" + transId + ":" + core.hashCode()).hashCode();
+                HashMap<Integer, CallableMethod> hash = hashTransCallables.get(hashCode);
+                CallableMethod cm;
+                if(hash==null) { //So we need to invoke from coreCallbale
+                    //This is the case where before transaction there is no binding to core, then binding happening.
+                    m = core.hashCode() + getMethodForKey(method);
+                    cm = coreCallable.get(m.hashCode());
+                }else {
+                    m = compartment.hashCode() + core.hashCode() + getMethodForKey(method);
+                    cm = hash.get(m.hashCode());
+                }
+                return cm.callable.invoke(cm.invokingObject, args);
+            }else {
+                m = compartment.hashCode() + core.hashCode() + getMethodForKey(method);
+                int hashCode = (compartment.hashCode() + ":" + core.hashCode()).hashCode();
+                HashMap<Integer, CallableMethod> hash = hashCallables.get(hashCode);
+                CallableMethod cm = hash.get(m.hashCode());
+                return cm.callable.invoke(cm.invokingObject, args);
+            }
         }
     }
 
@@ -244,13 +349,23 @@ public class Registry {
         Relation relation = optRelation.get();
 
         List<Relation> rs = traverseRelation(relation);
-        //first remove the current relation
-        relations.removeIf(p -> p.equals(relation));
-        proxyRoles.removeIf(p -> p.proxyRole == relation.proxyRole);
-        rs.forEach(k -> {
-            relations.removeIf(p -> p.equals(k));
-            proxyRoles.removeIf(p -> p.proxyRole == k.proxyRole);
-        });
+
+        //Check if there is a transaction, then marks as phantom
+//        if(m_transactions.size()>0){
+//            relation.unboundTime = LocalDateTime.now();
+//            rs.forEach(k -> {
+//                k.unboundTime = relation.unboundTime;
+//            });
+//        }else {
+
+            //first remove the current relation
+            relations.removeIf(p -> p.equals(relation));
+            proxyRoles.removeIf(p -> p.proxyRole == relation.proxyRole);
+            rs.forEach(k -> {
+                relations.removeIf(p -> p.equals(k));
+                proxyRoles.removeIf(p -> p.proxyRole == k.proxyRole);
+            });
+//        }
 
         //Method composition
         reRegisterCallable(compartment, isCore ? player : proxyObject);
@@ -688,5 +803,54 @@ public class Registry {
                 .findFirst();
 
         return c.cast(clazz.newInstance());
+    }
+
+    public void registerTransaction(long threadId, int transId){
+        m_lock.lock();
+        try {
+            SimpleEntry<Integer, LocalDateTime> tran = m_transactions.get(threadId);
+            if (tran == null) {
+                m_transactions.put(threadId, new SimpleEntry<>(transId, LocalDateTime.now()));
+
+                Object compartment = activeCompartments.get(threadId);
+                if(compartment == null) throw new RuntimeException("No Active Compartment was found");
+                int compartmentId = compartment.hashCode();
+                List<Relation> relationList = relations.stream()
+                        .filter(p -> p.proxyCompartment.equals(compartment))
+                        .collect(Collectors.toList());
+
+                for(Relation r : relationList){
+                    int hashId = (compartmentId + ":" + r.object.hashCode()).hashCode();
+                    HashMap<Integer, CallableMethod> compAndCores = hashCallables.get(hashId);
+                    int hashWithTrans = (compartmentId + ":" + transId + ":" + r.object.hashCode()).hashCode();
+                    hashTransCallables.put(hashWithTrans, compAndCores);
+                }
+            }else throw new RuntimeException("Two or more transactions run in parallel in a single thread.");
+        }finally {
+            m_lock.unlock();
+        }
+    }
+
+    public void removeTransaction(long threadId, int transId){
+        m_lock.lock();
+        try{
+            SimpleEntry<Integer, LocalDateTime> tran = m_transactions.get(threadId);
+            if(tran.getKey() == transId){
+                Object compartment = activeCompartments.get(threadId);
+                int compartmentId = compartment.hashCode();
+                List<Relation> relationList = relations.stream()
+                        .filter(p -> p.proxyCompartment.equals(compartment))
+                        .collect(Collectors.toList());
+
+                for(Relation r : relationList){
+                    int hashWithTrans = (compartmentId + ":" + transId + ":" + r.object.hashCode()).hashCode();
+                    hashTransCallables.remove(hashWithTrans);
+                }
+
+                m_transactions.remove(threadId);
+            }
+        }finally {
+            m_lock.unlock();
+        }
     }
 }

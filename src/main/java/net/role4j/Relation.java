@@ -1,5 +1,6 @@
 package net.role4j;
 
+import java.time.LocalDateTime;
 import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.List;
@@ -23,8 +24,11 @@ public class Relation {
     public Object role;
     public Object proxyRole;
     public Class roleType;
-    public int sequence;
+    public int sequence; //Ordering of binding
     public int level; //Depth of the deep role relation
+
+    public LocalDateTime boundTime; //role bound time
+    public LocalDateTime unboundTime; //role unbound time: Phantom state
 
     /**
      * Return the string of real object not proxy
@@ -49,8 +53,11 @@ public class Relation {
     @Override
     public String toString(){
         String comp = compartment==null?"":proxyCompartment.hashCode() + ":" + compartmentType.getSimpleName();
-        String str = String.format("%30s %30s %30s %30s %5s %5s",
+        String strBoundTime = boundTime!=null?boundTime.toLocalTime().toString():"";
+        String strUnBoundTime = unboundTime!=null?unboundTime.toLocalTime().toString():"";
+        String str = String.format("%30s %12s %12s %30s %30s %30s %5s %5s",
                 comp,
+                strBoundTime, strUnBoundTime,
                 proxyObject.hashCode()+ ":" + objectType.getSimpleName(),
                 proxyPlayer.hashCode()+ ":" + (playerType.get(0)).getSimpleName(),
                 proxyRole.hashCode()+ ":" + roleType.getSimpleName(),

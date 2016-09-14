@@ -6,10 +6,15 @@ The improvements of this version are:
 - Replacing the reflective method call to invokedynamic
 - Aiming for overall performance by pre-fetching the method composition during each role operations such as binding, unbinding, transferring ,etc.
 
+## Precaution
+The current implementation of Role4j relies on sub-class proxying to intercept the method call and eventually facilitate the method invocation through InvokeDynamic. There are some shortcommings to keep in mind:
+- The class definition of player, role and compartment cannot be `final`.
+- Do not access property directly. Instead, get/set method shall be used.
+
 ## Declaration
 Role4j is designed for highly modularity supporting not only at design time but also at run time.
 
-There are 3 main essential interfaces namely `ICompartment`, `IPlaer` and `IRole`. In the upcoming release there will be `IRelationship`.
+There are 3 main essential interfaces namely `ICompartment`, `IPlayer` and `IRole`. In the upcoming release there will be `IRelationship`.
 
 A player is declared with implementation of `IPlayer` interface.
 ``` java

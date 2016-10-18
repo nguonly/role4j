@@ -346,6 +346,7 @@ public class Registry {
                     .findFirst().get().proxyObject;
         }
 
+        if(!optRelation.isPresent()) return;
         Relation relation = optRelation.get();
 
         List<Relation> rs = traverseRelation(relation);

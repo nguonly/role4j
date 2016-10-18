@@ -1,0 +1,102 @@
+package demo.filetransfer.server;
+
+import net.role4j.Compartment;
+
+import javax.swing.*;
+
+/**
+ * Created by nguonly on 10/14/16.
+ */
+public class AppState {
+    static ServerService serverService;
+
+    static Compartment compartment;
+    static Channel channel;
+
+    static JTextArea txtMsg;
+
+    static boolean isTranquil;
+
+    private static AppState appState;
+
+    public AppState(){}
+
+    public static synchronized AppState getInstance(){
+        if(appState == null){
+            appState = new AppState();
+        }
+        return appState;
+    }
+
+    public static void startServerService(){
+        String tranquilMsg;
+        if(isTranquil) tranquilMsg = "::: With Tranquility :::";
+        else tranquilMsg = "::: WithOUT Tranquility :::";
+
+        txtMsg.append(tranquilMsg + "\n");
+        serverService = new ServerService();
+        serverService.start(); //Thread
+    }
+
+    public static void stopServerService(){
+        if(serverService!=null && serverService.server!=null && !serverService.server.isClosed()){
+            serverService.stopServer();
+            txtMsg.append("Server STOP!\n");
+        }
+    }
+
+    public static void performEncryptionAdaptation(){
+//        System.out.println("Perform Encryption Adaptation");
+        txtMsg.append("Adapt (Encryption)\n");
+
+        compartment.activate();
+        try {
+            channel.bind(Encryption.class);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
+    }
+
+    public static void performCompressionAdaptation(){
+//        System.out.println("Perform Encryption Adaptation");
+        txtMsg.append("Adapt (Compression)\n");
+
+        compartment.activate();
+        try {
+            channel.bind(Compression.class);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
+    }
+
+    public static void performEncryptionCompressionAdaptation(){
+        txtMsg.append("Adapt (Encryption -> Compression)\n");
+        compartment.activate();
+        try {
+            channel.bind(Encryption.class).bind(Compression.class);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
+    }
+
+    public static void performCompressionEncryptionAdaptation(){
+        txtMsg.append("Adapt (Compression -> Encryption)\n");
+        compartment.activate();
+        try {
+            channel.bind(Compression.class).bind(Encryption.class);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
+    }
+
+    public static void resetAdaptation(){
+        txtMsg.append("Reset Adaptation\n");
+        compartment.activate();
+        try {
+            channel.unbind(Encryption.class);
+            channel.unbind(Compression.class);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
+    }
+}

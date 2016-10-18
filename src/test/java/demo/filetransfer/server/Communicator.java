@@ -1,5 +1,6 @@
-package demo.filetransfer.server;
+package demo.filetransfer.server.evolution;
 
+import demo.filetransfer.server.AppState;
 import net.role4j.trans.Transaction;
 
 import java.io.BufferedReader;

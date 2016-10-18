@@ -26,7 +26,7 @@ public class ServerService extends Thread{
                 System.out.println("Waiting for client...");
                 AppState.txtMsg.append("Waiting for client...\n");
                 Socket client = server.accept();
-                AppState.txtMsg.append("Get connection from " + client.getInetAddress().toString() + " port:" + client.getPort() + "\n");
+                AppState.txtMsg.append("Got connection from " + client.getInetAddress().toString() + " port:" + client.getPort() + "\n");
 
                 ServiceHandler handler = new ServiceHandler(client);
                 pool.submit(handler);

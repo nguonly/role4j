@@ -1,5 +1,7 @@
 package demo.filetransfer.server;
 
+import demo.filetransfer.server.evolution.Compression;
+import demo.filetransfer.server.evolution.Encryption;
 import net.role4j.Compartment;
 
 import javax.swing.*;
@@ -28,12 +30,24 @@ public class AppState {
         return appState;
     }
 
+    public static void setTranquilState(boolean state){
+        isTranquil = state;
+    }
+
+    public static boolean isIsTranquil(){
+        return isTranquil;
+    }
+
+    public static JTextArea getTextMessageUI(){
+        return txtMsg;
+    }
+
     public static void startServerService(){
         String tranquilMsg;
         if(isTranquil) tranquilMsg = "::: With Tranquility :::";
         else tranquilMsg = "::: WithOUT Tranquility :::";
 
-        txtMsg.append(tranquilMsg + "\n");
+        txtMsg.setText(tranquilMsg + "\n");
         serverService = new ServerService();
         serverService.start(); //Thread
     }
@@ -93,8 +107,9 @@ public class AppState {
         txtMsg.append("Reset Adaptation\n");
         compartment.activate();
         try {
-            channel.unbind(Encryption.class);
-            channel.unbind(Compression.class);
+//            channel.unbind(Encryption.class);
+//            channel.unbind(Compression.class);
+            channel.unbindAll();
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }

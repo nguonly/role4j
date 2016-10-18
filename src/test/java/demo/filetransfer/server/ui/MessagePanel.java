@@ -1,4 +1,6 @@
-package demo.filetransfer.server;
+package demo.filetransfer.server.ui;
+
+import demo.filetransfer.server.AppState;
 
 import javax.swing.*;
 import java.awt.*;
@@ -9,7 +11,7 @@ import java.awt.*;
 public class MessagePanel extends JPanel {
 
     public MessagePanel(){
-        JScrollPane listScrollPane = new JScrollPane(AppState.txtMsg);
+        JScrollPane listScrollPane = new JScrollPane(AppState.getTextMessageUI());
 
         new SmartScroller(listScrollPane, SmartScroller.VERTICAL, SmartScroller.END);
 
@@ -18,6 +20,6 @@ public class MessagePanel extends JPanel {
 
         setBorder(BorderFactory.createTitledBorder("Message"));
         //setBackground(Color.BLUE);
-        setPreferredSize(new Dimension(30*10, 30*10));
+        setPreferredSize(new Dimension(40*10, 30*10));
     }
 }

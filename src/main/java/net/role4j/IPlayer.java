@@ -32,6 +32,10 @@ public interface IPlayer {
         _reg.unbind(this, true, klazz);
     }
 
+    default void unbindAll() throws Throwable{
+        _reg.unbindAll(this);
+    }
+
     default <T> T interfaceOf(Class<T> clazz){
         try {
             return _reg.interfaceOf(this, true, clazz);

@@ -26,13 +26,13 @@ public class DumpHelper {
     }
 
     public static void dumpRelations(List<Relation> relations){
-        System.out.println("----------------------");
+        System.out.println("--------------- Dump Relations --------------");
         System.out.format("%30s %12s %12s %30s %30s %30s %5s %5s\n",
                 "Compartment", "BoundTime", "UnBoundTime", "Object", "Player", "Role", "Lvl", "Seq");
 
         relations.forEach(System.out::println);
 
-        System.out.println("----------------------");
+        System.out.println("---------------- End of Dump Relations -----");
     }
 
     /**
@@ -53,11 +53,12 @@ public class DumpHelper {
     }
 
     public static void displayCallables(HashMap<Integer, CallableMethod> hashCallables) {
-        System.out.println("----------------------");
+        System.out.println("-------------- Display Callables -----------");
         System.out.format("%10s %10s %20s\n", "Method", "InvokingObj", "Callable");
         hashCallables.forEach((k, v) -> {
             System.out.format("%10d %10d %20s\n", k, v.invokingObject.hashCode(), v.method);
         });
+        System.out.println("-------------- End of Display Callables -----");
     }
 
     public static void displayTransactionCallables(){

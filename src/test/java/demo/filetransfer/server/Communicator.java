@@ -1,4 +1,4 @@
-package demo.filetransfer.server.evolution;
+package demo.filetransfer.server;
 
 import demo.filetransfer.server.AppState;
 import net.role4j.trans.Transaction;

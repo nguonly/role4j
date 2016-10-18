@@ -11,11 +11,13 @@ import net.bytebuddy.description.modifier.Visibility;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.implementation.InvocationHandlerAdapter;
 import net.bytebuddy.matcher.ElementMatchers;
+import net.role4j.trans.Transaction;
 
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import java.util.AbstractMap.SimpleEntry;
@@ -42,6 +44,8 @@ public class Registry {
     private HashMap<Long, ICompartment> activeCompartments = new HashMap<>(); //CurrentThread, Compartment
 
     public HashMap<Integer, CallableMethod> coreCallable = new HashMap<>();
+
+//    public HashMap<Integer, List<Relation>> hashTransRelations = new HashMap<>(); //TransactionId, List<Relation> of associated transaction
 
     /**
      * Transaction list
@@ -206,6 +210,7 @@ public class Registry {
         coreRelation.roleType = core.getClass();
         coreRelation.level = 0;
         coreRelation.sequence = 0;
+        coreRelation.boundTime = LocalDateTime.now();
         relations.add(coreRelation);
     }
 
@@ -352,12 +357,12 @@ public class Registry {
         List<Relation> rs = traverseRelation(relation);
 
         //Check if there is a transaction, then marks as phantom
-//        if(m_transactions.size()>0){
-//            relation.unboundTime = LocalDateTime.now();
-//            rs.forEach(k -> {
-//                k.unboundTime = relation.unboundTime;
-//            });
-//        }else {
+        if(m_transactions.size()>0){
+            relation.unboundTime = LocalDateTime.now();
+            rs.forEach(k -> {
+                k.unboundTime = relation.unboundTime;
+            });
+        }else {
 
             //first remove the current relation
             relations.removeIf(p -> p.equals(relation));
@@ -366,10 +371,47 @@ public class Registry {
                 relations.removeIf(p -> p.equals(k));
                 proxyRoles.removeIf(p -> p.proxyRole == k.proxyRole);
             });
-//        }
+        }
 
         //Method composition
         reRegisterCallable(compartment, isCore ? player : proxyObject);
+    }
+
+    /**
+     * Only call from core object to unbind all roles
+     * @param player
+     * @throws Throwable
+     */
+    public void unbindAll(Object player) throws Throwable {
+        ICompartment compartment = getActiveCompartment();
+        if (compartment == null) throw new RuntimeException("No active compartment was found");
+
+        Optional<Relation> optCoreRelation = relations.stream()
+                .filter(p -> p.proxyCompartment.equals(compartment) &&
+                        p.proxyObject.equals(player) && p.proxyPlayer.equals(player))
+                .findFirst();
+
+        if(!optCoreRelation.isPresent()) return;
+        Relation coreRelation = optCoreRelation.get();
+        List<Relation> rs = traverseRelation(coreRelation);
+
+        if(m_transactions.size()>0){
+            coreRelation.unboundTime = LocalDateTime.now();
+            rs.forEach(k -> k.unboundTime = coreRelation.unboundTime);
+            reRegisterCallable(compartment, player);
+
+        }else {
+            //remove from hashCallables
+            int hashCode = (compartment.hashCode() + ":" + player.hashCode()).hashCode();
+            hashCallables.remove(hashCode);
+
+            //garbage collected on proxy roles
+            rs.forEach(k -> proxyRoles.remove(k.proxyRole));
+            //delete relations
+            relations.removeIf
+                    (p -> p.proxyCompartment.equals(compartment) && p.proxyObject.equals(player));
+
+        }
     }
 
     public void reRegisterCallable(ICompartment compartment, Object object) {
@@ -635,12 +677,19 @@ public class Registry {
     public void activateCompartment(ICompartment compartment) {
         long threadId = Thread.currentThread().getId();
 
+        SimpleEntry<Integer, LocalDateTime>trans = m_transactions.get(threadId);
+        if(trans!=null) throw new RuntimeException("Compartment cannot be activated inside a transaction");
+
         //will override the existing compartment
         activeCompartments.put(threadId, compartment);
     }
 
     public void deactivateCompartment(ICompartment compartment) {
         long threadId = Thread.currentThread().getId();
+
+        SimpleEntry<Integer, LocalDateTime>trans = m_transactions.get(threadId);
+        if(trans!=null) throw new RuntimeException("Compartment cannot be deactivated inside a transaction");
+
         activeCompartments.remove(threadId);
     }
 
@@ -718,12 +767,18 @@ public class Registry {
         ICompartment compartment = getActiveCompartment();
         if (compartment == null) throw new RuntimeException("No compartment was found");
 
+        long threadId = Thread.currentThread().getId();
+        SimpleEntry<Integer, LocalDateTime> tran = m_transactions.get(threadId);
+        LocalDateTime ct = tran==null?LocalDateTime.now():tran.getValue();
+
+        Predicate<Relation> transTime = (p) -> p.boundTime.compareTo(ct)<=0 && (p.unboundTime==null || p.unboundTime.isAfter(ct));
+
         Optional<Relation> r = relations.stream()
-                .filter(p -> p.proxyCompartment.equals(compartment) && p.role.equals(role)
+                .filter(p ->  transTime.test(p) &&
+                        //p.boundTime.compareTo(ct)<=0 && (p.unboundTime==null || p.unboundTime.isAfter(ct)) &&
+                        p.proxyCompartment.equals(compartment) && p.role.equals(role)
                         && p.playerType.contains(playerType))
                 .findFirst();
-
-        //TODO: Check the resulting of infinite call due to proxying
 
         if (r.isPresent()) {
             Relation player = r.get();
@@ -820,12 +875,17 @@ public class Registry {
                         .filter(p -> p.proxyCompartment.equals(compartment))
                         .collect(Collectors.toList());
 
+//                List<Relation> transRelations = new ArrayList<>();
+
                 for(Relation r : relationList){
                     int hashId = (compartmentId + ":" + r.object.hashCode()).hashCode();
                     HashMap<Integer, CallableMethod> compAndCores = hashCallables.get(hashId);
                     int hashWithTrans = (compartmentId + ":" + transId + ":" + r.object.hashCode()).hashCode();
                     hashTransCallables.put(hashWithTrans, compAndCores);
+
+//                    transRelations.add(r);
                 }
+//                hashTransRelations.put(transId, transRelations); //create a copy of relations
             }else throw new RuntimeException("Two or more transactions run in parallel in a single thread.");
         }finally {
             m_lock.unlock();
@@ -847,11 +907,34 @@ public class Registry {
                     int hashWithTrans = (compartmentId + ":" + transId + ":" + r.object.hashCode()).hashCode();
                     hashTransCallables.remove(hashWithTrans);
                 }
-
+                deletePhantomRoles(tran.getValue(), compartment);
                 m_transactions.remove(threadId);
             }
         }finally {
             m_lock.unlock();
+        }
+    }
+
+    private void deletePhantomRoles(LocalDateTime txTime, Object compartment){
+        List<LocalDateTime> txTimeList = m_transactions.values().stream().map(r -> r.getValue()).collect(Collectors.toList());
+        Collections.sort(txTimeList);
+
+        int idx = 0;
+        for(int i=0; i<txTimeList.size(); i++){
+            if(txTimeList.get(i).equals(txTime)){
+                idx = i;
+                break;
+            }
+        }
+
+        if(idx>0) return;
+
+        if(idx==txTimeList.size()-1) {
+            relations.removeIf(r -> r.proxyCompartment.equals(compartment) && r.unboundTime != null && r.unboundTime.isAfter(txTime));
+        }else{
+            //get the started time of the next Tx
+            LocalDateTime txNextTime = txTimeList.get(idx+1);
+            relations.removeIf(r -> r.proxyCompartment.equals(compartment) && r.unboundTime!=null && r.unboundTime.isBefore(txNextTime));
         }
     }
 }

@@ -1,5 +1,8 @@
 package demo.filetransfer.server;
 
+import demo.filetransfer.server.ui.AdaptationPanel;
+import demo.filetransfer.server.ui.MessagePanel;
+import demo.filetransfer.server.ui.StartingServerPanel;
 import net.role4j.Compartment;
 import net.role4j.Registry;
 

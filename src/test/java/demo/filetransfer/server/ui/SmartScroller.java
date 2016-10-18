@@ -1,4 +1,4 @@
-package demo.filetransfer.server;
+package demo.filetransfer.server.ui;
 
 import java.awt.Component;
 import java.awt.event.*;

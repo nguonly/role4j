@@ -1,10 +1,8 @@
 package net.role4j;
 
 import java.time.LocalDateTime;
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -72,8 +70,11 @@ public class Relation {
     public List<Relation> nextBindingLevelRoles(ICompartment compartment){
         ArrayDeque<Relation> dequeRelations = Registry.getRegistry().getRelations();
 
+//        Predicate<Relation> transTime = (p) -> p.boundTime.compareTo(ct)<=0 && (p.unboundTime==null || p.unboundTime.isAfter(ct));
+
         List<Relation> list = dequeRelations.stream()
-                .filter(p -> p.proxyCompartment.equals(compartment) && p.proxyPlayer.equals(proxyRole) && p.level==level+1)
+                .filter(p -> p.proxyCompartment.equals(compartment) && p.proxyPlayer.equals(proxyRole)
+                        && p.level==level+1 && p.unboundTime==null)
                 .collect(Collectors.toList());
 
         return list;

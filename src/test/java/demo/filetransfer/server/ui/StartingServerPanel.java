@@ -1,4 +1,6 @@
-package demo.filetransfer.server;
+package demo.filetransfer.server.ui;
+
+import demo.filetransfer.server.AppState;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,7 +27,7 @@ public class StartingServerPanel extends JPanel {
         JButton btnStopServer = new JButton("Stop Server");
 
         btnStartServer.addActionListener(e -> {
-            AppState.isTranquil= withTranquility.isSelected();
+            AppState.setTranquilState(withTranquility.isSelected());
 
             AppState.startServerService();
         });
@@ -38,7 +40,7 @@ public class StartingServerPanel extends JPanel {
         add(btnStopServer);
 
         setBorder(BorderFactory.createTitledBorder("Server"));
-        setPreferredSize(new Dimension(20*10, 10*10));
+        setPreferredSize(new Dimension(20*10, 7*10));
 
     }
 }

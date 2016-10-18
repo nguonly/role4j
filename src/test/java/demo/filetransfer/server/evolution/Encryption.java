@@ -1,5 +1,6 @@
-package demo.filetransfer.server;
+package demo.filetransfer.server.evolution;
 
+import demo.filetransfer.server.IChannel;
 import net.role4j.IRole;
 
 /**
@@ -12,7 +13,7 @@ public class Encryption implements IChannel, IRole{
     }
 
     public String prepareChannelForSending(String data){
-//        String fMsg = getPlayer(IChannel.class).prepareChannelForSending(data);
-        return "<E>" + data + "<E>";
+        String fMsg = getPlayer(IChannel.class).prepareChannelForSending(data);
+        return "<E>" + fMsg + "<E>";
     }
 }

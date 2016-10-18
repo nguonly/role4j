@@ -27,7 +27,7 @@ public class NetworkService extends Thread {
             while((data=input.readLine())!=null){
                 //data = input.readLine();
                 txtMsg.append(data + "\n");
-                if(data.equalsIgnoreCase("DISCONNECT")) break;
+                if(data.contains("DISCONNECT")) break;
             }
         }catch(IOException e){
             e.printStackTrace();

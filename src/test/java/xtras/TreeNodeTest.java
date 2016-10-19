@@ -4,6 +4,7 @@ import net.role4j.DumpHelper;
 import net.role4j.ICompartment;
 import net.role4j.IPlayer;
 import net.role4j.IRole;
+import net.role4j.view.NodeInfoUI;
 import net.role4j.view.Tree;
 import net.role4j.view.NodeInfo;
 import net.role4j.view.RelationToTree;
@@ -116,6 +117,29 @@ public class TreeNodeTest extends BaseTest {
         DumpHelper.dumpRelations();
 
         Tree<NodeInfo> root = RelationToTree.convertRelationToTree();
+
+        root.printNode("");
+    }
+
+    @Test
+    public void testConvertTableToTreeNodeWithCompartment() throws Throwable{
+        Any any1 = _reg.newCore(Any.class);
+        Any any2 = _reg.newCore(Any.class);
+
+        MyCompartment comp1 = _reg.newCompartment(MyCompartment.class);
+        comp1.activate();
+
+        IRole a = any1.bind(A.class);
+
+        any2.bind(F.class).bind(G.class).bind(H.class);
+
+        any1.bind(C.class);
+
+        a.bind(B.class);
+
+        DumpHelper.dumpRelations();
+
+        Tree<NodeInfoUI> root = RelationToTree.convertRelationToTreeWithCompartment();
 
         root.printNode("");
     }

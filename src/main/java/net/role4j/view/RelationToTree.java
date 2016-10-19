@@ -1,10 +1,13 @@
 package net.role4j.view;
 
+import net.role4j.Compartment;
 import net.role4j.Registry;
 import net.role4j.Relation;
 
 import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -44,6 +47,51 @@ public class RelationToTree {
             NodeInfo n = new NodeInfo(r.proxyPlayer.hashCode(), r.player.getClass());
             Tree<NodeInfo> node = tree.find(n, tree);
             node.addChild(new Tree<>(new NodeInfo(r.proxyRole.hashCode(), r.roleType, r.proxyCompartment.hashCode(), r.compartmentType)));
+        }
+    }
+
+    public static Tree<NodeInfoUI> convertRelationToTreeWithCompartment(){
+        Registry reg = Registry.getRegistry();
+        ArrayDeque<Relation> relations = reg.getRelations();
+
+        NodeInfoUI root = new NodeInfoUI("Root", 0, 0);
+
+        Tree<NodeInfoUI> tree = new Tree<>(root);
+
+        //1. select compartment
+        Map<Object, Long> compartments =  relations.stream().collect(
+                Collectors.groupingBy(p->p.compartment, Collectors.counting())
+        );
+
+        compartments.forEach((k, v) -> {
+            List<Relation> coreRelations = relations.stream()
+                    .filter(p -> p.compartment.equals(k) && p.proxyObject == p.proxyRole && p.level==0 && p.sequence==0)
+                    .collect(Collectors.toList());
+
+            NodeInfoUI compartmentNode = new NodeInfoUI(k.getClass().getSimpleName(), k.hashCode(), k.hashCode());
+            Tree<NodeInfoUI> compartmentTree = new Tree<>(compartmentNode);
+            tree.addChild(compartmentTree);
+
+            //2. for each core, converting to Tree
+            for(Relation core: coreRelations){
+                List<Relation> traversedRelations = reg.traverseRelation(core);
+
+                NodeInfoUI coreInfo = new NodeInfoUI(core.objectType.getSimpleName(), core.object.hashCode(), core.proxyObject.hashCode());
+                //3. add the core object to tree
+                Tree<NodeInfoUI> coreNode = compartmentTree.addChild(coreInfo);
+
+                //4. traversing the all the roles belong the each core object
+                assignTraversedRelationToTreeWithCompartment(coreNode, traversedRelations);
+            }
+        });
+        return tree;
+    }
+
+    private static void assignTraversedRelationToTreeWithCompartment(Tree<NodeInfoUI> tree, List<Relation> relations){
+        for(Relation r: relations){
+            NodeInfoUI n = new NodeInfoUI(r.objectType.getSimpleName(), r.player.hashCode(), r.proxyPlayer.hashCode());
+            Tree<NodeInfoUI> node = tree.find(n, tree);
+            node.addChild(new Tree<>(new NodeInfoUI(r.roleType.getSimpleName(), r.role.hashCode(), r.proxyRole.hashCode())));
         }
     }
 }

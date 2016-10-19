@@ -83,6 +83,10 @@ public class Registry {
         return hashTransCallables;
     }
 
+    public HashMap<Integer, HashMap<Integer, CallableMethod>> getHashCallables() { return hashCallables; }
+
+    public HashMap<Long, SimpleEntry<Integer, LocalDateTime>> getTransactions() { return m_transactions;}
+
 //    public <T extends IRole> IRole bindCore(IPlayer object, Object role) throws Throwable {
 //        ICompartment compartment = getActiveCompartment();
 //        if (compartment == null) throw new RuntimeException("No compartment was found");

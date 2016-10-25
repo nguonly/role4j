@@ -22,6 +22,6 @@ public class HashCallablesPanel extends JPanel {
         add(spTreeHashCallables, BorderLayout.CENTER);
 
         setBorder(BorderFactory.createTitledBorder("Hash Callable Tree"));
-        setPreferredSize(new Dimension(30*10, 30*10));
+        setPreferredSize(new Dimension(50*10, 30*10));
     }
 }

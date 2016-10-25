@@ -21,7 +21,8 @@ public class MainRTMonitorUI extends JFrame implements Runnable{
 
         JPanel southPanel = new JPanel();
         southPanel.setLayout(new BorderLayout());
-        southPanel.add(hashCallablesPanel, BorderLayout.WEST);
+//        southPanel.add(hashCallablesPanel, BorderLayout.WEST);
+        southPanel.add(relationPanel, BorderLayout.WEST);
         southPanel.add(transHashCallablePanel, BorderLayout.EAST);
 
         JPanel centerPanel = new JPanel();
@@ -35,7 +36,8 @@ public class MainRTMonitorUI extends JFrame implements Runnable{
         add(centerPanel, BorderLayout.CENTER);
 
 //        add(hashCallablesPanel, BorderLayout.SOUTH);
-        add(southPanel, BorderLayout.SOUTH);
+//        add(southPanel, BorderLayout.SOUTH);
+        add(relationPanel, BorderLayout.SOUTH);
 
         setTitle("Runtime Monitor and Management Tool");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);

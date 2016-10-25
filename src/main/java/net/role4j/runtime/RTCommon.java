@@ -62,14 +62,14 @@ public class RTCommon {
 
         relations.forEach(r -> {
             Vector<String> d = new Vector<>();
-            String comp = r.compartment==null?"":r.proxyCompartment.hashCode() + ":" + r.compartmentType.getSimpleName();
+            String comp = r.compartment==null?"": r.compartmentType.getSimpleName() + ":" + r.proxyCompartment.hashCode();
             String strBoundTime = r.boundTime!=null?r.boundTime.toLocalTime().toString():"";
             String strUnBoundTime = r.unboundTime!=null?r.unboundTime.toLocalTime().toString():"";
 
             d.add(comp);
-            d.add(r.proxyObject.hashCode() + ":" + r.objectType.getSimpleName());
-            d.add(r.proxyPlayer.hashCode() + ":" + r.playerType.get(0).getSimpleName());
-            d.add(r.proxyRole.hashCode() + ":" + r.roleType.getSimpleName());
+            d.add(r.objectType.getSimpleName() + ":" + r.proxyObject.hashCode());
+            d.add(r.playerType.get(0).getSimpleName() + ":" + r.proxyPlayer.hashCode());
+            d.add(r.roleType.getSimpleName() + ":" + r.proxyRole.hashCode());
 
             d.add(strBoundTime);
             d.add(strUnBoundTime);
@@ -113,7 +113,7 @@ public class RTCommon {
             Vector d = new Vector();
             d.add(k);
             d.add(v.getKey());
-            d.add(v.getValue());
+            d.add(v.getValue().toLocalTime());
 
             modelTransactions.addRow(d);
         });

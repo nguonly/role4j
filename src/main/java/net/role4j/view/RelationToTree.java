@@ -54,21 +54,28 @@ public class RelationToTree {
         Registry reg = Registry.getRegistry();
         ArrayDeque<Relation> relations = reg.getRelations();
 
-        NodeInfoUI root = new NodeInfoUI("Root", 0, 0);
+        NodeInfoUI root = new NodeInfoUI("Root", 0, 0, 0);
 
         Tree<NodeInfoUI> tree = new Tree<>(root);
 
         //1. select compartment
         Map<Object, Long> compartments =  relations.stream().collect(
-                Collectors.groupingBy(p->p.compartment, Collectors.counting())
+                Collectors.groupingBy(p->p.proxyCompartment, Collectors.counting())
         );
 
         compartments.forEach((k, v) -> {
             List<Relation> coreRelations = relations.stream()
-                    .filter(p -> p.compartment.equals(k) && p.proxyObject == p.proxyRole && p.level==0 && p.sequence==0)
+                    .filter(p -> p.proxyCompartment.equals(k) && p.proxyObject == p.proxyRole && p.level==0 && p.sequence==0)
                     .collect(Collectors.toList());
 
-            NodeInfoUI compartmentNode = new NodeInfoUI(k.getClass().getSimpleName(), k.hashCode(), k.hashCode());
+            Object realComparment = null;
+            try {
+                 realComparment = k.getClass().getField("_real").get(k);
+            } catch (IllegalAccessException | NoSuchFieldException e) {
+                e.printStackTrace();
+            }
+
+            NodeInfoUI compartmentNode = new NodeInfoUI(realComparment.getClass().getName(), realComparment.hashCode(), k.hashCode(), k.hashCode());
             Tree<NodeInfoUI> compartmentTree = new Tree<>(compartmentNode);
             tree.addChild(compartmentTree);
 
@@ -76,7 +83,7 @@ public class RelationToTree {
             for(Relation core: coreRelations){
                 List<Relation> traversedRelations = reg.traverseRelation(core);
 
-                NodeInfoUI coreInfo = new NodeInfoUI(core.objectType.getSimpleName(), core.object.hashCode(), core.proxyObject.hashCode());
+                NodeInfoUI coreInfo = new NodeInfoUI(core.objectType.getName(), core.object.hashCode(), core.proxyObject.hashCode(), k.hashCode());
                 //3. add the core object to tree
                 Tree<NodeInfoUI> coreNode = compartmentTree.addChild(coreInfo);
 
@@ -89,9 +96,9 @@ public class RelationToTree {
 
     private static void assignTraversedRelationToTreeWithCompartment(Tree<NodeInfoUI> tree, List<Relation> relations){
         for(Relation r: relations){
-            NodeInfoUI n = new NodeInfoUI(r.objectType.getSimpleName(), r.player.hashCode(), r.proxyPlayer.hashCode());
+            NodeInfoUI n = new NodeInfoUI(r.objectType.getName(), r.player.hashCode(), r.proxyPlayer.hashCode(), r.proxyCompartment.hashCode());
             Tree<NodeInfoUI> node = tree.find(n, tree);
-            node.addChild(new Tree<>(new NodeInfoUI(r.roleType.getSimpleName(), r.role.hashCode(), r.proxyRole.hashCode())));
+            node.addChild(new Tree<>(new NodeInfoUI(r.roleType.getName(), r.role.hashCode(), r.proxyRole.hashCode(), r.proxyCompartment.hashCode())));
         }
     }
 }

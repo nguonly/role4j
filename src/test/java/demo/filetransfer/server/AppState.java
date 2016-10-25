@@ -3,6 +3,7 @@ package demo.filetransfer.server;
 import demo.filetransfer.server.evolution.Compression;
 import demo.filetransfer.server.evolution.Encryption;
 import net.role4j.Compartment;
+import net.role4j.evolution.UAdaptationXMLParser;
 
 import javax.swing.*;
 
@@ -15,7 +16,9 @@ public class AppState {
     static Compartment compartment;
     static Channel channel;
 
-    static JTextArea txtMsg;
+    static JTextArea txtMsg; //Main Server Message in MessagePanel
+
+    public static JTextArea txtXML; //XML in Unanticipated Adaptation
 
     static boolean isTranquil;
 
@@ -65,6 +68,7 @@ public class AppState {
 
         compartment.activate();
         try {
+            channel.unbindAll();
             channel.bind(Encryption.class);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -77,6 +81,7 @@ public class AppState {
 
         compartment.activate();
         try {
+            channel.unbindAll();
             channel.bind(Compression.class);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -87,6 +92,7 @@ public class AppState {
         txtMsg.append("Adapt (Encryption -> Compression)\n");
         compartment.activate();
         try {
+            channel.unbindAll();
             channel.bind(Encryption.class).bind(Compression.class);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -97,6 +103,7 @@ public class AppState {
         txtMsg.append("Adapt (Compression -> Encryption)\n");
         compartment.activate();
         try {
+            channel.unbindAll();
             channel.bind(Compression.class).bind(Encryption.class);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -107,11 +114,14 @@ public class AppState {
         txtMsg.append("Reset Adaptation\n");
         compartment.activate();
         try {
-//            channel.unbind(Encryption.class);
-//            channel.unbind(Compression.class);
             channel.unbindAll();
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
     }
+
+    public static void performUAdpatation(){
+        UAdaptationXMLParser.parse(txtXML.getText());
+    }
+
 }

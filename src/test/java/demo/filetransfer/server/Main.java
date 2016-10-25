@@ -19,11 +19,6 @@ public class Main extends JFrame {
     private MessagePanel messagePanel;
     private AdaptationPanel adaptationPanel;
 
-    private JTextArea txtMsg = new JTextArea();
-//    private boolean isTranquil;
-
-    private AppState appState = new AppState();
-
     public Main() throws Throwable{
 
         Registry reg = Registry.getRegistry();
@@ -49,9 +44,6 @@ public class Main extends JFrame {
     }
 
     public static void main(String... args) throws Throwable{
-        SwingUtilities.invokeLater(new MainRTMonitorUI());
-//        Thread rtMonitor = new Thread(new MainRTMonitorUI());
-//        rtMonitor.start();
         JFrame main = new Main();
         main.setVisible(true);
     }

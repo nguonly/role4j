@@ -53,7 +53,13 @@ public class ReflectionHelper {
     private static Class<?>[] getParameterTypes(Object... args) {
         Class<?>[] params=new Class<?>[args.length];
         for (int i=0;i<args.length;i++){
-            params[i]=args[i].getClass();
+            Class<?> cls = args[i].getClass();
+            //fixing the passing of bytebuddy subclass to a constrcutor resulting not found constructor
+            if(cls.getSimpleName().contains("ByteBuddy")){
+                params[i] = cls.getSuperclass();
+            }else {
+                params[i] = args[i].getClass();
+            }
         }
         return params;
     }

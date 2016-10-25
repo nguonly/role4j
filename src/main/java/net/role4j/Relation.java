@@ -86,4 +86,44 @@ public class Relation {
 
         return relation.isPresent()?relation.get():null;
     }
+
+    public static Object getProxyCompartment(ArrayDeque<Relation> relations, int proxyCompartmentId){
+        Optional<Relation> relation = relations.stream()
+                .filter(p -> p.proxyCompartment.hashCode() == proxyCompartmentId)
+                .findFirst();
+
+        return relation.isPresent()?relation.get().proxyCompartment : null;
+    }
+
+    public static Object getCompartment(ArrayDeque<Relation> relations, int compartmentId){
+        Optional<Relation> relation = relations.stream()
+                .filter(p -> p.compartment.hashCode() == compartmentId)
+                .findFirst();
+
+        return relation.isPresent()?relation.get().compartment : null;
+    }
+
+    public static Object getProxyCore(ArrayDeque<Relation> relations, int proxyCoreId){
+        Optional<Relation> relation = relations.stream()
+                .filter(p -> p.proxyObject.hashCode() == proxyCoreId)
+                .findFirst();
+
+        return relation.isPresent() ? relation.get().proxyObject : null;
+    }
+
+    public static Object getProxyPlayer(ArrayDeque<Relation> relations, int proxyPlayerId){
+        Optional<Relation> relation = relations.stream()
+                .filter(p -> p.proxyPlayer.hashCode() == proxyPlayerId)
+                .findFirst();
+
+        return relation.isPresent() ? relation.get().proxyPlayer : null;
+    }
+
+    public static Object getProxyRole(ArrayDeque<Relation> relations, int proxyRoleId){
+        Optional<Relation> relation = relations.stream()
+                .filter(p -> p.proxyRole.hashCode() == proxyRoleId)
+                .findFirst();
+
+        return relation.isPresent() ? relation.get().proxyRole : null;
+    }
 }

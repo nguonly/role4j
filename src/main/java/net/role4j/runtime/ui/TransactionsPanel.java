@@ -17,7 +17,7 @@ public class TransactionsPanel extends JPanel {
 
     private void initUI(){
         JTable tableTrans = new JTable(RTCommon.modelTransactions);
-        JScrollPane spTableTrans = new JScrollPane(tableTrans);
+        JScrollPane spTableTrans = new JScrollPane(tableTrans, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 
         setLayout(new BorderLayout());
         add(spTableTrans, BorderLayout.CENTER);

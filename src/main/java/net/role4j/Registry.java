@@ -9,7 +9,10 @@ import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.ClassFileVersion;
 import net.bytebuddy.description.modifier.Visibility;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
+import net.bytebuddy.dynamic.scaffold.subclass.ConstructorStrategy;
 import net.bytebuddy.implementation.InvocationHandlerAdapter;
+import net.bytebuddy.implementation.MethodCall;
+import net.bytebuddy.implementation.SuperMethodCall;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.role4j.trans.Transaction;
 
@@ -59,7 +62,7 @@ public class Registry {
 
     private static Registry registry;
 
-    public synchronized static Registry getRegistry() {
+    public static Registry getRegistry() {
         m_lock.lock();
         try {
             if (registry == null) {
@@ -69,6 +72,10 @@ public class Registry {
             m_lock.unlock();
         }
         return registry;
+    }
+
+    public static void destroyRegistry(){
+        registry = null;
     }
 
     public ArrayDeque<Relation> getRelations() {
@@ -185,6 +192,36 @@ public class Registry {
         reRegisterCallable(compartment, object);
 
         return proxyRole;
+    }
+
+    public <T extends IRole> IRole bindRoleToCore(int compartmentId, int coreId, String roleClass) throws Throwable{
+        ICompartment proxyCompartment = (ICompartment) Relation.getProxyCompartment(relations, compartmentId);
+        IPlayer proxyCore = (IPlayer)Relation.getProxyCore(relations, coreId);
+        Class<T> roleType = (Class<T>) Class.forName(roleClass);
+        return bindCore(proxyCompartment, proxyCore, roleType);
+    }
+
+    public <T extends IRole> IRole rebindRoleToCore(int compartmentId, int coreId, String roleClass) throws Throwable{
+        ICompartment proxyCompartment = (ICompartment) Relation.getProxyCompartment(relations, compartmentId);
+        IPlayer proxyCore = (IPlayer)Relation.getProxyCore(relations, coreId);
+        Class<T> roleType = (Class<T>) Class.forName(roleClass);
+        unbind(proxyCompartment, proxyCore, true, roleType);
+        return bindCore(proxyCompartment, proxyCore, roleType);
+    }
+
+    public <T extends IRole> IRole bindRoleToRole(int compartmentId, int playerId, String roleClass) throws Throwable{
+        ICompartment proxyCompartment = (ICompartment) Relation.getProxyCompartment(relations, compartmentId);
+        IPlayer proxyPlayer = (IPlayer)Relation.getProxyRole(relations, playerId);
+        Class<T> roleType = (Class<T>) Class.forName(roleClass);
+        return bindRole(proxyCompartment, proxyPlayer, roleType);
+    }
+
+    public <T extends IRole> IRole rebindRoleToRole(int compartmentId, int playerId, String roleClass) throws Throwable{
+        ICompartment proxyCompartment = (ICompartment) Relation.getProxyCompartment(relations, compartmentId);
+        IPlayer proxyPlayer = (IPlayer)Relation.getProxyRole(relations, playerId);
+        Class<T> roleType = (Class<T>) Class.forName(roleClass);
+        unbind(proxyCompartment, proxyPlayer, false, roleType);
+        return bindRole(proxyCompartment, proxyPlayer, roleType);
     }
 
     private void bindCoreToCore(Object compartment, Object realCompartment, Object core, Object proxyCore) {
@@ -332,8 +369,15 @@ public class Registry {
         return proxyRole;
     }
 
-    public void unbind(Object player, boolean isCore, Class<?> roleType) throws Throwable {
-        ICompartment compartment = getActiveCompartment();
+    public void unbind(int compartmentId, int playerId, boolean isCore, String roleClass) throws Throwable{
+        ICompartment proxyCompartment = (ICompartment) Relation.getProxyCompartment(relations, compartmentId);
+        Object proxyPlayer = Relation.getProxyPlayer(relations, playerId);
+        Class<?> roleType = Class.forName(roleClass);
+        unbind(proxyCompartment, proxyPlayer, isCore, roleType);
+    }
+
+    public void unbind(ICompartment comp, Object player, boolean isCore, Class<?> roleType) throws Throwable {
+        ICompartment compartment = comp==null? getActiveCompartment():comp;
         if (compartment == null) throw new RuntimeException("No active compartment was found");
 
         Optional<Relation> optRelation;
@@ -563,24 +607,21 @@ public class Registry {
     }
 
     private void registerCompartmentCallable(Object compartment, Class<?> clazz) {
-        Method[] methods = clazz.getDeclaredMethods();
-
-        for (Method method : methods) {
-            Callable<?> c = getCallable(clazz, method);
-            String m = compartment.hashCode() + getMethodForKey(method);
-            CallableMethod cm = new CallableMethod(m, compartment, c);
-            compartmentCallable.put(m.hashCode(), cm);
-        }
+        registerCallable(compartmentCallable, compartment, clazz);
     }
 
     private void registerCoreCallable(Object core, Class<?> clazz) {
+        registerCallable(coreCallable, core, clazz);
+    }
+
+    private void registerCallable(HashMap<Integer, CallableMethod> hashCallable, Object object, Class<?> clazz){
         Method[] methods = clazz.getDeclaredMethods();
 
         for (Method method : methods) {
             Callable<?> c = getCallable(clazz, method);
-            String m = core.hashCode() + getMethodForKey(method);
-            CallableMethod cm = new CallableMethod(m, core, c);
-            coreCallable.put(m.hashCode(), cm);
+            String m = object.hashCode() + getMethodForKey(method);
+            CallableMethod cm = new CallableMethod(m, object, c);
+            hashCallable.put(m.hashCode(), cm);
         }
     }
 
@@ -628,12 +669,14 @@ public class Registry {
                 .load(clazz.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
                 .getLoaded();
 
+        registerCoreCallable(core, core.getClass());
 
-        T proxyCore = ReflectionHelper.newInstance(proxyType, args);
+//        T proxyCore = ReflectionHelper.newInstance(proxyType, args);
+        T proxyCore = ReflectionHelper.newInstance(proxyType);
         //set temporary core object
         proxyType.getField("_real").set(proxyCore, core);
 
-        registerCoreCallable(core, core.getClass());
+//        registerCoreCallable(core, core.getClass());
 
         return proxyCore;
     }
@@ -668,12 +711,12 @@ public class Registry {
                 .load(compartmentType.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
                 .getLoaded();
 
+        //register indy method call
+        registerCompartmentCallable(realCompartment, compartmentType);
+
         T proxyCompartment = ReflectionHelper.newInstance(proxyType, args);
 
         proxyType.getField("_real").set(proxyCompartment, realCompartment);
-
-        //register indy method call
-        registerCompartmentCallable(realCompartment, compartmentType);
 
         return proxyCompartment;
     }
@@ -865,12 +908,12 @@ public class Registry {
         return c.cast(clazz.newInstance());
     }
 
-    public void registerTransaction(long threadId, int transId){
+    public void registerTransaction(long threadId, int transId, LocalDateTime time){
         m_lock.lock();
         try {
             SimpleEntry<Integer, LocalDateTime> tran = m_transactions.get(threadId);
             if (tran == null) {
-                m_transactions.put(threadId, new SimpleEntry<>(transId, LocalDateTime.now()));
+                m_transactions.put(threadId, new SimpleEntry<>(transId, time));
 
                 Object compartment = activeCompartments.get(threadId);
                 if(compartment == null) throw new RuntimeException("No Active Compartment was found");
@@ -879,17 +922,12 @@ public class Registry {
                         .filter(p -> p.proxyCompartment.equals(compartment))
                         .collect(Collectors.toList());
 
-//                List<Relation> transRelations = new ArrayList<>();
-
                 for(Relation r : relationList){
                     int hashId = (compartmentId + ":" + r.object.hashCode()).hashCode();
                     HashMap<Integer, CallableMethod> compAndCores = hashCallables.get(hashId);
                     int hashWithTrans = (compartmentId + ":" + transId + ":" + r.object.hashCode()).hashCode();
                     hashTransCallables.put(hashWithTrans, compAndCores);
-
-//                    transRelations.add(r);
                 }
-//                hashTransRelations.put(transId, transRelations); //create a copy of relations
             }else throw new RuntimeException("Two or more transactions run in parallel in a single thread.");
         }finally {
             m_lock.unlock();

@@ -160,6 +160,7 @@ public class UnbindAllTest extends BaseTest {
     @Test
     public void testUnbindAllOnMultipleObjectsInTransaction() throws Throwable{
         Registry reg = Registry.getRegistry();
+        _reg.setRelations(new ArrayDeque<>());
 
         Compartment comp = reg.newCompartment(Compartment.class);
         Any any1 = reg.newCore(Any.class);
@@ -181,6 +182,8 @@ public class UnbindAllTest extends BaseTest {
             Assert.assertEquals("E", any1.getName());
             Assert.assertEquals("A", any2.getName());
 
+            Thread.sleep(1); //prevent from the time of transaction and unbound roles is the same
+
             any1.unbindAll();
             any2.unbindAll();
 
@@ -188,6 +191,8 @@ public class UnbindAllTest extends BaseTest {
             Assert.assertEquals("A", any2.getName());
         }
         DumpHelper.dumpRelations();
+        System.out.println(reg.getTransactions());
+
         ArrayDeque<Relation> relationList = reg.getRelations();
         int rolesCount = (int) relationList.stream().filter(p -> p.proxyObject.equals(any2) && !p.proxyRole.equals(any2)).count();
 

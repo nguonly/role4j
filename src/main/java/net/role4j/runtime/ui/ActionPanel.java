@@ -18,6 +18,6 @@ public class ActionPanel extends JPanel{
         btnRefresh.addActionListener(e -> RTCommon.performRefresh());
 
         add(btnRefresh);
-
+        setBorder(BorderFactory.createTitledBorder("Actions"));
     }
 }

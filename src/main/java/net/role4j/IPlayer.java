@@ -29,7 +29,7 @@ public interface IPlayer {
 
     default <T> void unbind(Class<T> klazz) throws Throwable{
 //        _reg.unbind(this, klazz);
-        _reg.unbind(this, true, klazz);
+        _reg.unbind(null, this, true, klazz);
     }
 
     default void unbindAll() throws Throwable{
@@ -73,5 +73,9 @@ public interface IPlayer {
 
     default <T> T getCompartment(Class<T> compartmentType){
         return _reg.getCompartment(this, compartmentType);
+    }
+
+    default Object getReal() throws Throwable{
+        return getClass().getField("_real").get(this);
     }
 }

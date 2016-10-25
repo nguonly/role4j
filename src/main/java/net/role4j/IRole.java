@@ -25,7 +25,7 @@ public interface IRole extends IPlayer {
 
     default <T> void unbind(Class<T> klazz) throws Throwable{
 //        _reg.unbind(this, klazz);
-        _reg.unbind(this, false, klazz);
+        _reg.unbind(null, this, false, klazz);
     }
 
     default <T> T coreOf(Class<T> clazz){

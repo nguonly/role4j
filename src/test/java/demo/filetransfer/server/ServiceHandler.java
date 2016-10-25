@@ -10,6 +10,7 @@ import java.net.Socket;
 public class ServiceHandler extends Thread {
     private Communicator communicator;
     private Socket client;
+    private boolean isConnected=true;
 
     public ServiceHandler(Socket client){
         this.client = client;
@@ -33,7 +34,7 @@ public class ServiceHandler extends Thread {
     }
 
     private void simulateTransaction(){
-        while (true) {
+        while (isConnected) {
             communicator.send("Data");
             sleep(1000);
         }
@@ -48,6 +49,7 @@ public class ServiceHandler extends Thread {
     }
 
     public void disconnect(){
+        isConnected=false;
         communicator.send("DISCONNECT");
     }
 }

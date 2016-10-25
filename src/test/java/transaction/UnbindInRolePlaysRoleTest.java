@@ -75,20 +75,22 @@ public class UnbindInRolePlaysRoleTest extends BaseTest {
         comp.activate();
 
         channel.bind(Encryption.class).bind(Compression.class);
-        DumpHelper.dumpRelations();
-        DumpHelper.displayCallables(reg.coreCallable);
+//        DumpHelper.dumpRelations();
+//        DumpHelper.displayCallables(reg.coreCallable);
 
         try(Transaction tx = new Transaction()) {
             Assert.assertEquals("<C><E>Data<E><C>", channel.send("Data"));
 
+            Thread.sleep(1); //prevent from unexpected result as the time of transaction and unbound role is the same
+
             channel.unbind(Compression.class);
 
-            DumpHelper.dumpRelations();
+//            DumpHelper.dumpRelations();
             Assert.assertEquals("<C><E>Data<E><C>", channel.send("Data"));
         }
 
         Assert.assertEquals("<E>Data<E>", channel.send("Data"));
-        System.out.println("After Transaction");
-        DumpHelper.dumpRelations();
+//        System.out.println("After Transaction");
+//        DumpHelper.dumpRelations();
     }
 }

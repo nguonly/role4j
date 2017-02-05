@@ -143,8 +143,5 @@ public class InvocationWithTransactionTest extends BaseTest {
         //Wait for all threads to finish
         while(!pool.isTerminated()){}
 
-        //Assertion the thread
-//        Assert.assertEquals(100, counter[0]);
-//        Assert.assertEquals(100, counter[1]);
     }
 }

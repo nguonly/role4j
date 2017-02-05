@@ -121,7 +121,7 @@ public class UnboundTimeTest extends BaseTest {
         try(Transaction tx = new Transaction()){
             for(int i=0; i<50; i++){
                 String ret = any.getName();
-                System.out.println(ret);
+//                System.out.println(ret);
                 Assert.assertEquals("MyD", ret);
 
                 Thread.sleep(10);

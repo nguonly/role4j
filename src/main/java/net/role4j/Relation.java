@@ -28,6 +28,8 @@ public class Relation {
     public LocalDateTime boundTime; //role bound time
     public LocalDateTime unboundTime; //role unbound time: Phantom state
 
+    public int versionCounter; //version counter added on 11.02.2017
+
     /**
      * Return the string of real object not proxy
      * @return
@@ -53,13 +55,13 @@ public class Relation {
         String comp = compartment==null?"":proxyCompartment.hashCode() + ":" + compartmentType.getSimpleName();
         String strBoundTime = boundTime!=null?boundTime.toLocalTime().toString():"";
         String strUnBoundTime = unboundTime!=null?unboundTime.toLocalTime().toString():"";
-        String str = String.format("%30s %12s %12s %30s %30s %30s %5s %5s",
+        String str = String.format("%30s %12s %12s %30s %30s %30s %5s %5s %5s",
                 comp,
                 strBoundTime, strUnBoundTime,
                 proxyObject.hashCode()+ ":" + objectType.getSimpleName(),
                 proxyPlayer.hashCode()+ ":" + (playerType.get(0)).getSimpleName(),
                 proxyRole.hashCode()+ ":" + roleType.getSimpleName(),
-                level, sequence);
+                level, sequence, versionCounter);
         return str;
     }
 
@@ -125,5 +127,32 @@ public class Relation {
                 .findFirst();
 
         return relation.isPresent() ? relation.get().proxyRole : null;
+    }
+
+    public Relation clone(){
+        Relation r = new Relation();
+        r.compartment = this.compartment;
+        r.proxyCompartment = this.proxyCompartment;
+        r.compartmentType = this.compartmentType;
+
+        r.object = this.object;
+        r.proxyObject = this.proxyObject;
+        r.objectType = this.objectType;
+
+        r.player = this.player;
+        r.proxyPlayer = this.proxyPlayer;
+        r.playerType = this.playerType;
+
+        r.role = this.role;
+        r.proxyRole = this.proxyRole;
+        r.roleType = this.roleType;
+
+        r.level = this.level;
+        r.sequence = this.sequence;
+
+        r.unboundTime = this.unboundTime;
+        r.boundTime = this.boundTime;
+
+        return r;
     }
 }

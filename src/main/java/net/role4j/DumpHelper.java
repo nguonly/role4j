@@ -27,12 +27,16 @@ public class DumpHelper {
 
     public static void dumpRelations(List<Relation> relations){
         System.out.println("--------------- Dump Relations --------------");
-        System.out.format("%30s %12s %12s %30s %30s %30s %5s %5s\n",
-                "Compartment", "BoundTime", "UnBoundTime", "Object", "Player", "Role", "Lvl", "Seq");
+        System.out.format("%30s %12s %12s %30s %30s %30s %5s %5s %5s\n",
+                "Compartment", "BoundTime", "UnBoundTime", "Object", "Player", "Role", "Lvl", "Seq", "VC");
 
         relations.forEach(System.out::println);
 
         System.out.println("---------------- End of Dump Relations -----");
+    }
+
+    public static void dumpRelations(ArrayDeque<Relation> relations){
+        dumpRelations(relations.stream().collect(Collectors.toList()));
     }
 
     /**

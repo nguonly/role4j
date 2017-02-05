@@ -86,19 +86,14 @@ public class ParallelExecutionTest extends BaseTest{
         world.activate();
         ly.bind(Student.class);
 
-//        Runnable r1 = () -> {
-//            for(int i=0; i<1_000_000; i++) {
-//                String ret = ly.speak();
-//                System.out.println(ret);
-////                Assert.assertEquals("Student", ret);
-//            }
-//        };
+        final boolean[] bindingFinished = {false};
 
         Runnable binding = () -> {
             world.activate();
             try {
                 ly.bind(Father.class);
-                System.out.println(":::::::::::: binding completed :::::::::::");
+                bindingFinished[0] =true;
+//                System.out.println(":::::::::::: binding completed :::::::::::");
             } catch (Throwable throwable) {
                 throwable.printStackTrace();
             }
@@ -108,21 +103,15 @@ public class ParallelExecutionTest extends BaseTest{
         pool.schedule(binding, 100, TimeUnit.MILLISECONDS);
 
         for (int i = 0; i < 1_00; i++) {
-            String ret = ly.speak();
-            System.out.println(ret);
             Thread.sleep(50);
-//                Assert.assertEquals("Student", ret);
+            if(ly.getRoleInstance(Father.class)==null) {
+                Assert.assertEquals("Student", ly.speak());
+            }else{
+                Assert.assertEquals("Father", ly.speak());
+            }
+
         }
 
-//        ScheduledExecutorService pool = Executors.newScheduledThreadPool(2);
-
-//        Future t1 = pool.submit(r1);
-//        Future t2 = pool.submit(binding);
-//        pool.schedule(binding, 1, TimeUnit.MILLISECONDS);
-
-
-//        t1.get();
-//        t2.get(1, TimeUnit.MILLISECONDS);
 
         pool.shutdown();
 

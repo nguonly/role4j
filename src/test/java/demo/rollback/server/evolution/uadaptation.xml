@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<adaptation>
+    <compartment type="net.role4j.ICompartment" id="712763632" >
+        <!--<rebind coreId="937873673" roleType="demo.filetransfer.server.evolution.Logger" >-->
+            <!--<invoke method="defineObstacle" returnType="void"></invoke>-->
+            <!--&lt;!&ndash;<invoke method="clearAllObstacles" returnType="void"></invoke>&ndash;&gt;-->
+        <!--</rebind>-->
+        <!--<rebind coreId="20132171" roleType="net.runtime.role.snake.MovingFood" />-->
+        <!--<unbind coreId="1880587981" roleType="net.runtime.role.snake.MovingFood" />-->
+        <!--<rebind coreId="1878246837" roleType="net.runtime.role.snake.PassingWall" />-->
+        <unbind coreId="1950409828" roleType="demo.filetransfer.server.evolution.Encryption" />
+    </compartment><!-- -->
+</adaptation>

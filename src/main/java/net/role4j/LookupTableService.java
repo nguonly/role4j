@@ -1,9 +1,6 @@
 package net.role4j;
 
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -90,5 +87,26 @@ public class LookupTableService {
 
 
         return r;
+    }
+
+    public static List<Relation> getLatestVersionRelations(int proxyCompartment){
+        ArrayDeque<Relation> relations = _reg.getRelations();
+
+        int maxVersion = getLatestVersion(proxyCompartment);
+
+        List<Relation> maxRelations = relations.stream()
+                .filter(p -> p.proxyCompartment.hashCode()==proxyCompartment && p.versionCounter==maxVersion)
+                .collect(Collectors.toList());
+
+        return maxRelations;
+    }
+
+    public static int getLatestVersion(int proxyCompartment){
+        ArrayDeque<Relation> relations = _reg.getRelations();
+        OptionalInt max = relations.stream()
+                .filter(p -> p.proxyCompartment.hashCode()==proxyCompartment)
+                .mapToInt(p->p.versionCounter).max();
+
+        return max.isPresent()? max.getAsInt() : 0;
     }
 }

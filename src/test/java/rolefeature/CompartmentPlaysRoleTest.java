@@ -3,7 +3,6 @@ package rolefeature;
 import net.role4j.ICompartment;
 import net.role4j.IPlayer;
 import net.role4j.IRole;
-import org.junit.Assert;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

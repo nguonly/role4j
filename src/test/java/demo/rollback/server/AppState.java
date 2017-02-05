@@ -1,9 +1,11 @@
-package demo.filetransfer.server;
+package demo.rollback.server;
 
-import demo.filetransfer.server.evolution.Compression;
-import demo.filetransfer.server.evolution.Encryption;
+import demo.rollback.server.evolution.Compression;
+import demo.rollback.server.evolution.Encryption;
 import net.role4j.Compartment;
+import net.role4j.DumpHelper;
 import net.role4j.evolution.UAdaptationXMLParser;
+import net.role4j.rollback.ControlUnit;
 
 import javax.swing.*;
 
@@ -68,8 +70,10 @@ public class AppState {
 
         compartment.activate();
         try {
-            channel.unbindAll();
+//            channel.unbindAll();
+            ControlUnit.checkpoint();
             channel.bind(Encryption.class);
+            DumpHelper.dumpRelations();
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
@@ -81,8 +85,10 @@ public class AppState {
 
         compartment.activate();
         try {
-            channel.unbindAll();
+//            channel.unbindAll();
+            ControlUnit.checkpoint();
             channel.bind(Compression.class);
+            DumpHelper.dumpRelations();
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
@@ -92,7 +98,7 @@ public class AppState {
         txtMsg.append("Adapt (Encryption -> Compression)\n");
         compartment.activate();
         try {
-            channel.unbindAll();
+            ControlUnit.checkpoint();
             channel.bind(Encryption.class).bind(Compression.class);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -103,7 +109,7 @@ public class AppState {
         txtMsg.append("Adapt (Compression -> Encryption)\n");
         compartment.activate();
         try {
-            channel.unbindAll();
+            ControlUnit.checkpoint();
             channel.bind(Compression.class).bind(Encryption.class);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -114,6 +120,7 @@ public class AppState {
         txtMsg.append("Reset Adaptation\n");
         compartment.activate();
         try {
+            ControlUnit.checkpoint();
             channel.unbindAll();
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -122,6 +129,10 @@ public class AppState {
 
     public static void performUAdpatation(){
         UAdaptationXMLParser.parse(txtXML.getText());
+    }
+
+    public static void appendMessage(String message){
+        txtMsg.append(message + "\n");
     }
 
 }

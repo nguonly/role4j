@@ -100,7 +100,7 @@ public class BasicTransactionTest extends BaseTest {
                 int counter = 0;
                 for (int i = 0; i < 50; i++) {
                     String ret = p.getName();
-                    System.out.println(ret);
+//                    System.out.println(ret);
 
                     //Mock to assert
                     if(ret.equals("Employee")){
@@ -124,7 +124,7 @@ public class BasicTransactionTest extends BaseTest {
             for(int i=0; i<100; i++) {
                 String ret = p.getName();
                 Assert.assertEquals("Student", ret);
-                System.out.println(ret);
+//                System.out.println(ret);
 
                 Thread.sleep(20);
             }

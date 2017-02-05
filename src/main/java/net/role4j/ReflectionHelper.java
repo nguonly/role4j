@@ -1,5 +1,8 @@
 package net.role4j;
 
+import net.role4j.evolution.ClassReloader;
+
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,12 +14,18 @@ public class ReflectionHelper {
         try {
             T obj;
 
-            Class<?>[] paramTypes = null;
+            Class<?>[] paramTypes;
+
+            //Dynamic reload the class
+//            Class<?> dynClass = new ClassReloader().loadClass(clazz);
+
             if (args != null && args.length > 0) {
                 paramTypes = getParameterTypes(args);
-                java.lang.reflect.Constructor<T> constr = clazz.getConstructor(paramTypes);
+//                Constructor<T> constr = (Constructor<T>)dynClass.getConstructor(paramTypes);
+                Constructor<T> constr = clazz.getConstructor(paramTypes);
                 obj = constr.newInstance(args);
             } else {
+//                obj = (T)dynClass.newInstance();
                 obj = clazz.newInstance();
             }
 

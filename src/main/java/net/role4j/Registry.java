@@ -7,8 +7,10 @@ import es.uniovi.reflection.invokedynamic.util.Cache;
 import es.uniovi.reflection.invokedynamic.util.MethodSignature;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.ClassFileVersion;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.description.modifier.Visibility;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
+import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
 import net.bytebuddy.dynamic.scaffold.subclass.ConstructorStrategy;
 import net.bytebuddy.implementation.InvocationHandlerAdapter;
 import net.bytebuddy.implementation.MethodCall;
@@ -60,6 +62,16 @@ public class Registry {
     //Synchronized variable
     private static final ReentrantLock m_lock = new ReentrantLock();
 
+    /**
+     * ControlUnit of a compartment adaptation configuration
+     * Integer is the Compartment's hashcode, Stack contain the list of a set of adaptation configuration
+     */
+    private Hashtable<Integer, Stack<ArrayDeque<Relation>>> hashConfiguration = new Hashtable<>();
+
+    private ArrayDeque<Relation> shadowRelation = new ArrayDeque<>();
+
+    private boolean isEvolutionEmabled = false;
+
     private static Registry registry;
 
     public static Registry getRegistry() {
@@ -93,6 +105,12 @@ public class Registry {
     public HashMap<Integer, HashMap<Integer, CallableMethod>> getHashCallables() { return hashCallables; }
 
     public HashMap<Long, SimpleEntry<Integer, LocalDateTime>> getTransactions() { return m_transactions;}
+
+    public HashMap<Long, ICompartment> getActiveCompartments(){return activeCompartments;}
+
+    public ArrayDeque<Relation> getShadowRelation(){return shadowRelation;}
+
+    public Hashtable<Integer, Stack<ArrayDeque<Relation>>> getConfigurations(){return hashConfiguration;}
 
 //    public <T extends IRole> IRole bindCore(IPlayer object, Object role) throws Throwable {
 //        ICompartment compartment = getActiveCompartment();
@@ -139,6 +157,16 @@ public class Registry {
 //
 //        return proxyRole;
 //    }
+
+    public void enableEvolution(boolean flag){
+        //Install ByteBuddy agent first
+        if(flag && !isByteBuddyAgentInstalled()) ByteBuddyAgent.install();
+        isEvolutionEmabled = flag;
+    }
+
+    public boolean isEvolutionEmabled(){
+        return isEvolutionEmabled;
+    }
 
     public <T extends IRole> IRole bindCore(IPlayer object, Class<T> roleType, Object... args) throws Throwable {
 //        T role = ReflectionHelper.newInstance(roleType, args);
@@ -345,14 +373,22 @@ public class Registry {
 
     private <T> T proxyRole(ICompartment compartment, Object core, Object proxyObject, Object role, Class<T> roleType, Object... args) throws Throwable {
 
-        Class<? extends T> roleClass = new ByteBuddy(ClassFileVersion.forCurrentJavaVersion())
-                .subclass(roleType)
-                .defineField("_real", IPlayer.class, Visibility.PUBLIC)
-                .method(ElementMatchers.isDeclaredBy(roleType))
-                .intercept(InvocationHandlerAdapter.of((proxy, method, m_args) -> proxyHandler(core, method, m_args)))
-                .make()
-                .load(roleType.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
-                .getLoaded();
+//        Class<? extends T> redefinedRoleClass = new ByteBuddy(ClassFileVersion.ofThisVm())
+//                .rebase(roleType)
+//                .make()
+//                .load(roleType.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent())
+//                .getLoaded();
+//
+//        Class<? extends T> roleClass = new ByteBuddy(ClassFileVersion.ofThisVm())
+//                .subclass(redefinedRoleClass)
+//                .defineField("_real", IPlayer.class, Visibility.PUBLIC)
+//                .method(ElementMatchers.isDeclaredBy(roleType))
+//                .intercept(InvocationHandlerAdapter.of((proxy, method, m_args) -> proxyHandler(core, method, m_args)))
+//                .make()
+//                .load(redefinedRoleClass.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
+//                .getLoaded();
+
+        Class<? extends T> roleClass = getRoleDefinition(core, roleType);
 
         T proxyRole = ReflectionHelper.newInstance(roleClass, args);
         roleClass.getField("_real").set(proxyRole, role);
@@ -367,6 +403,33 @@ public class Registry {
         proxyRoles.add(pr);
 
         return proxyRole;
+    }
+
+    private <T> Class<? extends T> getRoleDefinition(Object core, Class<T> roleType){
+        Class<? extends T> redefinedRoleClass;
+
+        if(isEvolutionEmabled){
+            //1. ByteBuddyAgent must be installed (ByteBuddyAgent.install())
+            //2. Redefine super class role
+            redefinedRoleClass = new ByteBuddy(ClassFileVersion.ofThisVm())
+                    .rebase(roleType)
+                    .make()
+                    .load(roleType.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent())
+                    .getLoaded();
+        }else{
+            redefinedRoleClass = roleType;
+        }
+
+        Class<? extends T> roleClass = new ByteBuddy(ClassFileVersion.ofThisVm())
+                .subclass(redefinedRoleClass)
+                .defineField("_real", IPlayer.class, Visibility.PUBLIC)
+                .method(ElementMatchers.isDeclaredBy(roleType))
+                .intercept(InvocationHandlerAdapter.of((proxy, method, m_args) -> proxyHandler(core, method, m_args)))
+                .make()
+                .load(redefinedRoleClass.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
+                .getLoaded();
+
+        return roleClass;
     }
 
     public void unbind(int compartmentId, int playerId, boolean isCore, String roleClass) throws Throwable{
@@ -660,19 +723,20 @@ public class Registry {
 
         final T core = ReflectionHelper.newInstance(clazz, args);
 
-        Class<? extends T> proxyType = new ByteBuddy(ClassFileVersion.forCurrentJavaVersion())
+        Class<? extends T> proxyType = new ByteBuddy(ClassFileVersion.ofThisVm())
                 .subclass(clazz)
                 .defineField("_real", IPlayer.class, Visibility.PUBLIC)
                 .method(ElementMatchers.isDeclaredBy(clazz))
                 .intercept(InvocationHandlerAdapter.of((proxy, method, m_args) -> proxyHandler(core, method, m_args)))
                 .make()
                 .load(clazz.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
+//                .load(core.getClass().getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
                 .getLoaded();
 
         registerCoreCallable(core, core.getClass());
-
-//        T proxyCore = ReflectionHelper.newInstance(proxyType, args);
-        T proxyCore = ReflectionHelper.newInstance(proxyType);
+//        T proxyCore = proxyType.newInstance();
+        T proxyCore = ReflectionHelper.newInstance(proxyType, args);
+//        T proxyCore = ReflectionHelper.newInstance(proxyType);
         //set temporary core object
         proxyType.getField("_real").set(proxyCore, core);
 
@@ -698,7 +762,7 @@ public class Registry {
     public <T> T newCompartment(Class<T> compartmentType, Object... args) throws Throwable {
         T realCompartment = ReflectionHelper.newInstance(compartmentType, args);
 
-        Class<? extends T> proxyType = new ByteBuddy(ClassFileVersion.forCurrentJavaVersion())
+        Class<? extends T> proxyType = new ByteBuddy(ClassFileVersion.ofThisVm())
                 .subclass(compartmentType)
                 .defineField("_real", IPlayer.class, Visibility.PUBLIC)
                 .method(ElementMatchers.isDeclaredBy(compartmentType))
@@ -979,4 +1043,13 @@ public class Registry {
             relations.removeIf(r -> r.proxyCompartment.equals(compartment) && r.unboundTime!=null && r.unboundTime.isBefore(txNextTime));
         }
     }
+
+        public boolean isByteBuddyAgentInstalled(){
+            try {
+                ByteBuddyAgent.getInstrumentation();
+                return true;
+            }catch(IllegalStateException e){
+                return false;
+            }
+        }
 }
